@@ -16,7 +16,7 @@ class AppJsIconCacheBustingTest {
                 .getContentAsString(StandardCharsets.UTF_8);
 
         assertTrue(appJs.contains("const CIV_ICON_CACHE_TOKEN = 'desktop-icon-cache-1';"));
-        assertTrue(appJs.contains("img.src = withIconCacheToken(iconPath || GENERIC_CIV_ICON_PATH);"));
+        assertTrue(appJs.contains("queueImageLoad(img, withIconCacheToken(iconPath || GENERIC_CIV_ICON_PATH));"));
         assertTrue(appJs.contains("img.src = withIconCacheToken(GENERIC_CIV_ICON_PATH);"));
     }
 }

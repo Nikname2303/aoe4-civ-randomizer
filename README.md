@@ -137,7 +137,7 @@ The `WHERE NOT EXISTS` guard means your enable/disable choices are never overwri
 ## Notes
 
 - **Local use only** — no authentication, no multi-user support, no network exposure.
-- **H2 database** — stored in `./data/aoe4randomizer.mv.db` (gitignored). Delete this file to reset all settings to defaults.
+- **H2 database** — stored in `~/.aoe4-civ-randomizer/data/aoe4randomizer.mv.db` (gitignored). Delete this file to reset all settings to defaults.
 - **H2 console** (optional debugging) — uncomment the two lines in `application.properties` to enable it at `http://localhost:8080/h2-console`.
 - **Civ icons** — local files are stored in `src/main/resources/static/images/civs/`. Keep filenames lowercase and hyphenated to match `icon_path` values.
 - **Planned features** (not in this version): pick history / stats, multi-profile support.
