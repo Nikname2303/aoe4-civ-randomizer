@@ -15,14 +15,18 @@ public class Civilization {
     @Column(nullable = false)
     private String dlc;
 
+    @Column(name = "icon_path")
+    private String iconPath;
+
     @Column(nullable = false)
     private boolean enabled = true;
 
     public Civilization() {}
 
-    public Civilization(String name, String dlc) {
+    public Civilization(String name, String dlc, String iconPath) {
         this.name = name;
         this.dlc = dlc;
+        this.iconPath = iconPath;
         this.enabled = true;
     }
 
@@ -34,6 +38,9 @@ public class Civilization {
 
     public String getDlc() { return dlc; }
     public void setDlc(String dlc) { this.dlc = dlc; }
+
+    public String getIconPath() { return iconPath; }
+    public void setIconPath(String iconPath) { this.iconPath = iconPath; }
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
