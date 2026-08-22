@@ -21,7 +21,10 @@ class AppJsImageLoadQueueTest {
                 "app.js should define queueImageLoad function");
         assertTrue(appJs.contains("function processQueue("),
                 "app.js should define processQueue function");
-        assertTrue(appJs.contains("queueImageLoad(img, withIconCacheToken(iconPath || GENERIC_CIV_ICON_PATH));"),
-                "createCivInline should use queueImageLoad instead of direct img.src assignment");
+        // Data URI is used directly; queue is used for the HTTP fallback path
+        assertTrue(appJs.contains("if (civ.iconDataUri)"),
+                "createCivInline should prefer iconDataUri over HTTP requests");
+        assertTrue(appJs.contains("queueImageLoad(img, withIconCacheToken(civ.iconPath || GENERIC_CIV_ICON_PATH));"),
+                "createCivInline fallback should use queueImageLoad for HTTP icon path");
     }
 }

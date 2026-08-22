@@ -24,4 +24,12 @@ class CivilizationApiTest {
                 .andExpect(jsonPath("$[0].name").exists())
                 .andExpect(jsonPath("$[0].iconPath").exists());
     }
+
+    @Test
+    void getCivsIncludesIconDataUri() throws Exception {
+        mockMvc.perform(get("/api/civs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].iconDataUri").value(
+                        org.hamcrest.Matchers.startsWith("data:image/png;base64,")));
+    }
 }
