@@ -1,10 +1,12 @@
 package com.aoe4.randomizer.desktop;
 
 import com.aoe4.randomizer.Aoe4RandomizerApplication;
+import com.sun.javafx.webkit.WebConsoleListener;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import org.springframework.boot.SpringApplication;
@@ -78,7 +80,21 @@ public class DesktopLauncher extends Application {
 
     private void showMainWindow(Stage stage, String appUrl) {
         WebView webView = new WebView();
-        webView.getEngine().load(appUrl);
+        WebEngine engine = webView.getEngine();
+
+        WebConsoleListener.setDefaultListener((view, message, lineNumber, sourceId) ->
+                System.out.println("[webview-console] " + sourceId + ":" + lineNumber + " " + message));
+        engine.setOnError(event -> System.out.println("[webview-error] " + event.getMessage()));
+        engine.getLoadWorker().exceptionProperty().addListener((obs, oldEx, newEx) -> {
+            if (newEx != null) {
+                System.out.println("[webview-load-exception] " + newEx);
+                newEx.printStackTrace();
+            }
+        });
+        engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) ->
+                System.out.println("[webview-load-state] " + oldState + " -> " + newState));
+
+        engine.load(appUrl);
         stage.setScene(new Scene(webView));
         stage.show();
     }
@@ -110,7 +126,6 @@ public class DesktopLauncher extends Application {
     }
 
     public static void main(String[] args) {
-        DesktopLauncherSupport.disableWebViewHttp2Loader();
         launch(args);
     }
 }
