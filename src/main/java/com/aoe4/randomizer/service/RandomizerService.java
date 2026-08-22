@@ -22,6 +22,16 @@ public class RandomizerService {
         return civRepo.findAllByOrderByDlcAscNameAsc();
     }
 
+    /** Sets enabled state for all civilizations in a DLC group and saves them. */
+    public List<Civilization> setDlcEnabled(String dlcName, boolean enabled) {
+        List<Civilization> civs = civRepo.findByDlc(dlcName);
+        if (civs.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No civilizations found for DLC: " + dlcName);
+        }
+        civs.forEach(c -> c.setEnabled(enabled));
+        return civRepo.saveAll(civs);
+    }
+
     /** Flips the enabled state of a civilization and saves it. */
     public Civilization toggle(Long id) {
         Civilization civ = civRepo.findById(id)

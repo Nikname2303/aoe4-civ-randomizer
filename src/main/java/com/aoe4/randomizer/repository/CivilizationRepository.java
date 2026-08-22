@@ -7,4 +7,5 @@ import java.util.List;
 public interface CivilizationRepository extends JpaRepository<Civilization, Long> {
     List<Civilization> findAllByOrderByDlcAscNameAsc();
     List<Civilization> findByEnabledTrue();
+    List<Civilization> findByDlc(String dlc);
 }
