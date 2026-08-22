@@ -320,6 +320,8 @@ function createCivInline(civ, largeIcon) {
     const img = document.createElement('img');
     img.className = largeIcon ? 'civ-icon-large' : 'civ-icon';
     img.alt = '';
+    img.decoding = 'async';
+    img.loading = largeIcon ? 'eager' : 'lazy';
 
     if (civ.iconDataUri) {
         // Data URIs resolve synchronously without HTTP requests — set directly.
@@ -351,4 +353,3 @@ function createCivInline(civ, largeIcon) {
 function withIconCacheToken(iconPath) {
     return iconPath + (iconPath.includes('?') ? '&' : '?') + 'v=' + CIV_ICON_CACHE_TOKEN;
 }
-
