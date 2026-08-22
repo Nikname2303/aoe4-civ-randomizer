@@ -37,6 +37,79 @@ Then open [http://localhost:8080](http://localhost:8080).
 
 ---
 
+## Desktop mode (JavaFX wrapper)
+
+Desktop mode runs the same Spring Boot app locally and opens it in a native window.
+
+```bash
+mvn -Pdesktop javafx:run
+```
+
+Or from a built jar:
+
+```bash
+java -jar target/randomizer-0.0.1-SNAPSHOT.jar --desktop
+```
+
+- Default desktop port: `18080` (keeps normal web mode on `8080` unchanged).
+- If needed, override desktop port:
+
+```bash
+mvn -Pdesktop -Ddesktop.port=19090 javafx:run
+```
+
+---
+
+## Build a Windows desktop package (jpackage)
+
+### Prerequisites
+
+- JDK 17+ that includes `jpackage` (for example Temurin/OpenJDK full JDK install)
+- Maven 3.6+
+- Windows machine for building Windows `.exe` / `.msi`
+
+### 1) Build the app jar
+
+```bash
+mvn clean package
+```
+
+### 2) Build the desktop launcher package
+
+Run this from the project root (PowerShell example):
+
+```powershell
+jpackage `
+  --input target `
+  --name "AoE4 Civ Randomizer" `
+  --main-jar randomizer-0.0.1-SNAPSHOT.jar `
+  --main-class org.springframework.boot.loader.launch.JarLauncher `
+  --type exe `
+  --arguments "--desktop" `
+  --java-options "-Ddesktop.port=18080"
+```
+
+Notes:
+- Use `--type msi` if you want an MSI installer.
+- Optional icon: add `--icon path\to\icon.ico`. If omitted, default icon is used.
+
+---
+
+## Troubleshooting
+
+- **Port conflict in desktop mode**  
+  If startup says desktop port is in use, close the conflicting app or run with another port:
+  `-Ddesktop.port=19090`.
+
+- **JavaFX class/module errors**  
+  Make sure you used the desktop profile command: `mvn -Pdesktop javafx:run`.
+
+- **`jpackage` not found**  
+  Install a full JDK (not JRE), then verify:
+  `jpackage --version`.
+
+---
+
 ## How to edit the civilization list
 
 The full civ list lives in one easy-to-edit file:
