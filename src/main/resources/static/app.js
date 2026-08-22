@@ -13,7 +13,7 @@ const civByName = {};
 const CIV_ICON_CACHE_TOKEN = 'desktop-icon-cache-1';
 const GENERIC_CIV_ICON_PATH = '/images/civs/generic.png';
 
-// ── Concurrency-limited image loader queue (for JavaFX WebView compatibility) ─
+// ── Concurrency-limited image loader queue (kept for non-data-URI fallback paths) ─
 const MAX_CONCURRENT_IMAGE_LOADS = 3;
 let activeLoads = 0;
 const loadQueue = [];
@@ -58,7 +58,7 @@ document.getElementById('solo-btn').addEventListener('click', async () => {
         const civ = await res.json();
         resultEl.innerHTML = '';
         // Use the large-icon variant for the solo result
-        resultEl.appendChild(createCivInline(civ.name, civ.iconPath, true));
+        resultEl.appendChild(createCivInline(civ, true));
     } catch (e) {
         resultEl.textContent = '⚠ Could not reach the server.';
         resultEl.classList.add('error-text');
@@ -148,8 +148,8 @@ document.getElementById('lobby-btn').addEventListener('click', async () => {
                 }
 
                 const civName = assignments[name];
-                const civ = civByName[civName] || {};
-                civCell.appendChild(createCivInline(civName, civ.iconPath));
+                const civ = civByName[civName] || { name: civName };
+                civCell.appendChild(createCivInline(civ));
             }
         });
     } catch (e) {
@@ -246,7 +246,7 @@ function renderCivList(civs) {
             });
 
             label.appendChild(checkbox);
-            label.appendChild(createCivInline(civ.name, civ.iconPath));
+            label.appendChild(createCivInline(civ));
             groupEl.appendChild(label);
         });
 
@@ -305,14 +305,29 @@ async function toggleCiv(id, checkbox) {
     }
 }
 
-function createCivInline(civName, iconPath, largeIcon) {
+/**
+ * Creates an inline civ element (icon + name) from a civ object.
+ * Uses iconDataUri (base64 data URI) when available to avoid HTTP requests,
+ * falling back to the iconPath URL otherwise.
+ * @param {object} civ - civ object with name, iconDataUri (optional), iconPath (optional)
+ * @param {boolean} largeIcon - whether to use the large icon class
+ */
+function createCivInline(civ, largeIcon) {
+    const civName = civ.name || '';
     const wrapper = document.createElement('span');
     wrapper.className = 'civ-inline';
 
     const img = document.createElement('img');
     img.className = largeIcon ? 'civ-icon-large' : 'civ-icon';
-    queueImageLoad(img, withIconCacheToken(iconPath || GENERIC_CIV_ICON_PATH));
     img.alt = '';
+
+    if (civ.iconDataUri) {
+        // Data URIs resolve synchronously without HTTP requests — set directly.
+        img.src = civ.iconDataUri;
+    } else {
+        // Fallback: load via HTTP with cache-busting token (legacy/browser path).
+        queueImageLoad(img, withIconCacheToken(civ.iconPath || GENERIC_CIV_ICON_PATH));
+    }
 
     img.onerror = () => {
         console.error('Icon failed to load for "' + civName + '": ' + img.src);
@@ -336,3 +351,4 @@ function createCivInline(civName, iconPath, largeIcon) {
 function withIconCacheToken(iconPath) {
     return iconPath + (iconPath.includes('?') ? '&' : '?') + 'v=' + CIV_ICON_CACHE_TOKEN;
 }
+
