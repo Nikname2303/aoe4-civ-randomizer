@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 const civByName = {};
+const CIV_ICON_CACHE_TOKEN = 'desktop-icon-cache-1';
+const GENERIC_CIV_ICON_PATH = '/images/civs/generic.png';
 
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -285,11 +287,17 @@ function createCivInline(civName, iconPath, largeIcon) {
 
     const img = document.createElement('img');
     img.className = largeIcon ? 'civ-icon-large' : 'civ-icon';
-    img.src = iconPath || '/images/civs/generic.png';
+    img.src = withIconCacheToken(iconPath || GENERIC_CIV_ICON_PATH);
     img.alt = '';
 
     img.onerror = () => {
-        img.style.display = 'none';
+        if (img.dataset.fallbackApplied === 'true') {
+            img.style.display = 'none';
+            return;
+        }
+
+        img.dataset.fallbackApplied = 'true';
+        img.src = withIconCacheToken(GENERIC_CIV_ICON_PATH);
     };
 
     const text = document.createElement('span');
@@ -298,4 +306,8 @@ function createCivInline(civName, iconPath, largeIcon) {
     wrapper.appendChild(text);
     wrapper.appendChild(img);
     return wrapper;
+}
+
+function withIconCacheToken(iconPath) {
+    return iconPath + (iconPath.includes('?') ? '&' : '?') + 'v=' + CIV_ICON_CACHE_TOKEN;
 }
