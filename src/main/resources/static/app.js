@@ -13,6 +13,30 @@ const civByName = {};
 const CIV_ICON_CACHE_TOKEN = 'desktop-icon-cache-1';
 const GENERIC_CIV_ICON_PATH = '/images/civs/generic.png';
 
+// ── Concurrency-limited image loader queue (for JavaFX WebView compatibility) ─
+const MAX_CONCURRENT_IMAGE_LOADS = 3;
+let activeLoads = 0;
+const loadQueue = [];
+
+function queueImageLoad(img, src) {
+    loadQueue.push({ img, src });
+    processQueue();
+}
+
+function processQueue() {
+    while (activeLoads < MAX_CONCURRENT_IMAGE_LOADS && loadQueue.length > 0) {
+        const { img, src } = loadQueue.shift();
+        activeLoads++;
+        const done = () => {
+            activeLoads--;
+            processQueue();
+        };
+        img.addEventListener('load', done, { once: true });
+        img.addEventListener('error', done, { once: true });
+        img.src = src;
+    }
+}
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  QUICK SOLO ROLL
@@ -287,7 +311,7 @@ function createCivInline(civName, iconPath, largeIcon) {
 
     const img = document.createElement('img');
     img.className = largeIcon ? 'civ-icon-large' : 'civ-icon';
-    img.src = withIconCacheToken(iconPath || GENERIC_CIV_ICON_PATH);
+    queueImageLoad(img, withIconCacheToken(iconPath || GENERIC_CIV_ICON_PATH));
     img.alt = '';
 
     img.onerror = () => {
