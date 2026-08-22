@@ -81,18 +81,21 @@ public class DesktopLauncher extends Application {
     private void showMainWindow(Stage stage, String appUrl) {
         WebView webView = new WebView();
         WebEngine engine = webView.getEngine();
+        boolean debugLogging = Boolean.getBoolean("desktop.debug");
 
-        WebConsoleListener.setDefaultListener((view, message, lineNumber, sourceId) ->
-                System.out.println("[webview-console] " + sourceId + ":" + lineNumber + " " + message));
-        engine.setOnError(event -> System.out.println("[webview-error] " + event.getMessage()));
-        engine.getLoadWorker().exceptionProperty().addListener((obs, oldEx, newEx) -> {
-            if (newEx != null) {
-                System.out.println("[webview-load-exception] " + newEx);
-                newEx.printStackTrace();
-            }
-        });
-        engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) ->
-                System.out.println("[webview-load-state] " + oldState + " -> " + newState));
+        if (debugLogging) {
+            WebConsoleListener.setDefaultListener((view, message, lineNumber, sourceId) ->
+                    System.out.println("[webview-console] " + sourceId + ":" + lineNumber + " " + message));
+            engine.setOnError(event -> System.out.println("[webview-error] " + event.getMessage()));
+            engine.getLoadWorker().exceptionProperty().addListener((obs, oldEx, newEx) -> {
+                if (newEx != null) {
+                    System.out.println("[webview-load-exception] " + newEx);
+                    newEx.printStackTrace();
+                }
+            });
+            engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) ->
+                    System.out.println("[webview-load-state] " + oldState + " -> " + newState));
+        }
 
         engine.load(appUrl);
         stage.setScene(new Scene(webView));

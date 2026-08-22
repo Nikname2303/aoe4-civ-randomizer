@@ -99,8 +99,14 @@ Notes:
 ## Troubleshooting
 
 - **Civ icons appear as generic placeholders in desktop mode**  
-  This issue is under active investigation. Run the desktop app from a terminal to
-  capture WebView diagnostics and JavaScript console output.
+  Root cause: JavaFX WebView can fail when reusing HTTP keep-alive connections for
+  sequential icon requests to the local embedded server.  
+  Fix in this app: responses under `/images/**` send `Connection: close`, forcing
+  fresh connections per icon request in desktop mode.
+  
+  If icon issues recur, enable WebView diagnostics explicitly:
+  - Jar launch: `java -Ddesktop.debug=true -jar target/randomizer-0.0.1-SNAPSHOT.jar --desktop`
+  - JavaFX Maven launch: `mvn -Pdesktop -Ddesktop.debug=true javafx:run`
 
 - **Port conflict in desktop mode**  
   If startup says desktop port is in use, close the conflicting app or run with another port:
