@@ -21,7 +21,6 @@ public class DesktopLauncher extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        DesktopLauncherSupport.disableWebViewHttp2Loader();
         final int desktopPort;
         try {
             desktopPort = DesktopLauncherSupport.resolveDesktopPort();
@@ -111,6 +110,7 @@ public class DesktopLauncher extends Application {
     }
 
     public static void main(String[] args) {
+        DesktopLauncherSupport.disableWebViewHttp2Loader();
         launch(args);
     }
 }
