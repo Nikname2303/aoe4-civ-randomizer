@@ -288,8 +288,8 @@ function createCivInline(civName, iconPath, largeIcon) {
     img.src = iconPath || '/images/civs/generic.png';
     img.alt = '';
     if (!largeIcon) {
-        img.width = 28;
-        img.height = 28;
+        img.width = 34;
+        img.height = 34;
     }
     img.onerror = () => {
         img.style.display = 'none';
@@ -298,7 +298,7 @@ function createCivInline(civName, iconPath, largeIcon) {
     const text = document.createElement('span');
     text.textContent = civName;
 
-    wrapper.appendChild(img);
     wrapper.appendChild(text);
+    wrapper.appendChild(img);
     return wrapper;
 }
