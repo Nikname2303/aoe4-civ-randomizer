@@ -45,6 +45,12 @@ Desktop mode runs the same Spring Boot app locally and opens it in a native wind
 mvn -Pdesktop javafx:run
 ```
 
+Or from a built jar:
+
+```bash
+java -jar target/randomizer-0.0.1-SNAPSHOT.jar --desktop
+```
+
 - Default desktop port: `18080` (keeps normal web mode on `8080` unchanged).
 - If needed, override desktop port:
 
@@ -77,8 +83,9 @@ jpackage `
   --input target `
   --name "AoE4 Civ Randomizer" `
   --main-jar randomizer-0.0.1-SNAPSHOT.jar `
-  --main-class com.aoe4.randomizer.desktop.DesktopLauncher `
+  --main-class org.springframework.boot.loader.launch.JarLauncher `
   --type exe `
+  --arguments "--desktop" `
   --java-options "-Ddesktop.port=18080"
 ```
 
