@@ -287,10 +287,7 @@ function createCivInline(civName, iconPath, largeIcon) {
     img.className = largeIcon ? 'civ-icon-large' : 'civ-icon';
     img.src = iconPath || '/images/civs/generic.png';
     img.alt = '';
-    if (!largeIcon) {
-        img.width = 34;
-        img.height = 34;
-    }
+
     img.onerror = () => {
         img.style.display = 'none';
     };
