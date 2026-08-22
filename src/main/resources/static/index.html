@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AoE4 Civ Randomizer</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>Age of Empires 4 — Civ Randomizer</h1>
+
+<!-- ════════════════════════════════════════════════════════
+     QUICK SOLO ROLL
+     Click the button to get one random civ from your enabled pool.
+     ════════════════════════════════════════════════════════ -->
+<section id="solo-section">
+    <h2>Quick Roll</h2>
+    <button id="solo-btn">🎲 Randomize me a civ!</button>
+    <p id="solo-result" class="result-text"></p>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     LOBBY RANDOMIZER
+     Enter player names, then click Randomize to assign civs.
+     ════════════════════════════════════════════════════════ -->
+<section id="lobby-section">
+    <h2>Lobby Randomizer</h2>
+
+    <!-- Error banner — shown only when the API returns an error -->
+    <div id="lobby-error" class="error-banner hidden"></div>
+
+    <!-- Player table: left = name input, right = assigned civ -->
+    <table id="player-table">
+        <thead>
+            <tr>
+                <th>Player Name</th>
+                <th>Assigned Civilization</th>
+            </tr>
+        </thead>
+        <tbody id="player-rows">
+            <!-- Rows are added dynamically by JS -->
+        </tbody>
+    </table>
+
+    <div class="lobby-controls">
+        <!-- Add / remove player rows -->
+        <button id="add-player-btn">+ Add Player</button>
+        <button id="remove-player-btn">− Remove Last Player</button>
+    </div>
+
+    <div class="lobby-options">
+        <!-- Toggle whether multiple players can get the same civ -->
+        <label>
+            <input type="checkbox" id="allow-duplicates-checkbox" />
+            Allow duplicate civilizations in this lobby
+        </label>
+    </div>
+
+    <!-- Trigger the lobby randomization -->
+    <button id="lobby-btn">🎲 Randomize Lobby</button>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     CIV SELECTION PANEL
+     Lists all civilizations grouped by DLC.
+     Check / uncheck to include / exclude a civ from the pool.
+     Changes are saved immediately (no Save button needed).
+     ════════════════════════════════════════════════════════ -->
+<section id="civ-section">
+    <h2>Civilization Pool</h2>
+    <p class="hint">Check a civilization to include it in random picks. Uncheck to exclude it. Changes save instantly.</p>
+
+    <!-- Civilization groups are rendered here by JS -->
+    <div id="civ-list"></div>
+</section>
+
+<!-- Main application logic -->
+<script src="app.js"></script>
+</body>
+</html>
