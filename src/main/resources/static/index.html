@@ -13,11 +13,15 @@
 <!-- ════════════════════════════════════════════════════════
      QUICK SOLO ROLL
      Click the button to get one random civ from your enabled pool.
+     The result (large icon + civ name) appears to the right of the button.
      ════════════════════════════════════════════════════════ -->
 <section id="solo-section">
     <h2>Quick Roll</h2>
-    <button id="solo-btn">🎲 Randomize me a civ!</button>
-    <p id="solo-result" class="result-text"></p>
+    <!-- Flex row: button on the left, result on the right -->
+    <div class="solo-roll-row">
+        <button id="solo-btn">🎲 Randomize me a civ!</button>
+        <div id="solo-result" class="solo-result-area"></div>
+    </div>
 </section>
 
 <!-- ════════════════════════════════════════════════════════

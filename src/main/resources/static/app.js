@@ -18,28 +18,24 @@ const civByName = {};
 
 document.getElementById('solo-btn').addEventListener('click', async () => {
     const resultEl = document.getElementById('solo-result');
-    resultEl.textContent = '…picking…';
-    resultEl.className = 'result-text';
+    resultEl.innerHTML = '…picking…';
+    resultEl.className = 'solo-result-area';
 
     try {
         const res = await fetch('/api/random/single', { method: 'POST' });
         if (!res.ok) {
             const err = await res.json();
             resultEl.textContent = '⚠ ' + (err.message || 'Error');
-            resultEl.className = 'result-text error-text';
+            resultEl.classList.add('error-text');
             return;
         }
         const civ = await res.json();
         resultEl.innerHTML = '';
-        const civInline = createCivInline(civ.name, civ.iconPath);
-        const dlcText = document.createElement('span');
-        dlcText.className = 'result-dlc';
-        dlcText.textContent = ' (' + civ.dlc + ')';
-        resultEl.appendChild(civInline);
-        resultEl.appendChild(dlcText);
+        // Use the large-icon variant for the solo result
+        resultEl.appendChild(createCivInline(civ.name, civ.iconPath, true));
     } catch (e) {
         resultEl.textContent = '⚠ Could not reach the server.';
-        resultEl.className = 'result-text error-text';
+        resultEl.classList.add('error-text');
     }
 });
 
@@ -173,15 +169,39 @@ function renderCivList(civs) {
         groups[civ.dlc].push(civ);
     });
 
-    // Render each group as a subsection with a heading
+    // Render each group as a subsection with a heading + "Toggle all" checkbox
     Object.keys(groups).sort().forEach(dlcName => {
         const groupEl = document.createElement('div');
         groupEl.className = 'civ-group';
 
+        // Heading row: DLC name h3 + toggle-all checkbox
+        const headingRow = document.createElement('div');
+        headingRow.className = 'dlc-heading-row';
+
         const heading = document.createElement('h3');
         heading.textContent = dlcName;
-        groupEl.appendChild(heading);
+        headingRow.appendChild(heading);
 
+        const toggleLabel = document.createElement('label');
+        toggleLabel.className = 'dlc-toggle-label';
+
+        const toggleCheckbox = document.createElement('input');
+        toggleCheckbox.type = 'checkbox';
+
+        const allEnabled = groups[dlcName].every(c => c.enabled);
+        const noneEnabled = groups[dlcName].every(c => !c.enabled);
+        toggleCheckbox.checked = allEnabled;
+        if (!allEnabled && !noneEnabled) {
+            toggleCheckbox.indeterminate = true;
+        }
+
+        toggleLabel.appendChild(toggleCheckbox);
+        toggleLabel.appendChild(document.createTextNode(' Toggle all'));
+        headingRow.appendChild(toggleLabel);
+        groupEl.appendChild(headingRow);
+
+        // Per-civ checkboxes
+        const civCheckboxes = [];
         groups[dlcName].forEach(civ => {
             const label = document.createElement('label');
             label.className = 'civ-item';
@@ -190,17 +210,57 @@ function renderCivList(civs) {
             checkbox.type = 'checkbox';
             checkbox.checked = civ.enabled;
             checkbox.dataset.civId = civ.id;
+            civCheckboxes.push(checkbox);
 
             // Toggling a checkbox immediately persists via the API
-            checkbox.addEventListener('change', () => toggleCiv(civ.id, checkbox));
+            checkbox.addEventListener('change', () => {
+                toggleCiv(civ.id, checkbox).then(() => {
+                    updateDlcToggleState(toggleCheckbox, civCheckboxes);
+                });
+            });
 
             label.appendChild(checkbox);
             label.appendChild(createCivInline(civ.name, civ.iconPath));
             groupEl.appendChild(label);
         });
 
+        // Bulk toggle: set all civs in DLC to the same state via the API
+        toggleCheckbox.addEventListener('change', async () => {
+            const newEnabled = toggleCheckbox.checked;
+            toggleCheckbox.indeterminate = false;
+            try {
+                const params = new URLSearchParams({ dlcName, enabled: newEnabled });
+                const res = await fetch('/api/civs/dlc/set?' + params.toString(), { method: 'POST' });
+                if (!res.ok) {
+                    toggleCheckbox.checked = !newEnabled;
+                    toggleCheckbox.indeterminate = false;
+                    alert('Could not save the change. Please try again.');
+                    return;
+                }
+                const updated = await res.json();
+                // Sync per-civ checkboxes with the server response
+                updated.forEach(updatedCiv => {
+                    const cb = civCheckboxes.find(c => String(c.dataset.civId) === String(updatedCiv.id));
+                    if (cb) cb.checked = updatedCiv.enabled;
+                    civByName[updatedCiv.name] = updatedCiv;
+                });
+                updateDlcToggleState(toggleCheckbox, civCheckboxes);
+            } catch (e) {
+                toggleCheckbox.checked = !newEnabled;
+                alert('Could not reach the server.');
+            }
+        });
+
         container.appendChild(groupEl);
     });
+}
+
+/** Syncs the DLC toggle checkbox state from the individual civ checkboxes. */
+function updateDlcToggleState(toggleCheckbox, civCheckboxes) {
+    const allOn = civCheckboxes.every(cb => cb.checked);
+    const allOff = civCheckboxes.every(cb => !cb.checked);
+    toggleCheckbox.checked = allOn;
+    toggleCheckbox.indeterminate = !allOn && !allOff;
 }
 
 async function toggleCiv(id, checkbox) {
@@ -219,16 +279,18 @@ async function toggleCiv(id, checkbox) {
     }
 }
 
-function createCivInline(civName, iconPath) {
+function createCivInline(civName, iconPath, largeIcon) {
     const wrapper = document.createElement('span');
     wrapper.className = 'civ-inline';
 
     const img = document.createElement('img');
-    img.className = 'civ-icon';
+    img.className = largeIcon ? 'civ-icon-large' : 'civ-icon';
     img.src = iconPath || '/images/civs/generic.png';
     img.alt = '';
-    img.width = 28;
-    img.height = 28;
+    if (!largeIcon) {
+        img.width = 28;
+        img.height = 28;
+    }
     img.onerror = () => {
         img.style.display = 'none';
     };

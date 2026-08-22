@@ -27,4 +27,16 @@ public class CivilizationController {
     public Civilization toggle(@PathVariable Long id) {
         return service.toggle(id);
     }
+
+    /**
+     * POST /api/civs/dlc/set?dlcName=...&enabled=true|false
+     * Sets every civilization in the named DLC group to the given enabled state.
+     * Returns the updated list of civs in that group.
+     */
+    @PostMapping("/dlc/set")
+    public List<Civilization> setDlcEnabled(
+            @RequestParam String dlcName,
+            @RequestParam boolean enabled) {
+        return service.setDlcEnabled(dlcName, enabled);
+    }
 }
