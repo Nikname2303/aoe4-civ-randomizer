@@ -86,7 +86,7 @@ jpackage `
   --main-class org.springframework.boot.loader.launch.JarLauncher `
   --type exe `
   --arguments "--desktop" `
-  --java-options "-Ddesktop.port=18080 -Dcom.sun.webkit.useHTTP2Loader=false"
+  --java-options "-Ddesktop.port=18080 --add-exports=javafx.web/com.sun.javafx.webkit=ALL-UNNAMED"
 ```
 
 Notes:
@@ -99,10 +99,8 @@ Notes:
 ## Troubleshooting
 
 - **Civ icons appear as generic placeholders in desktop mode**  
-  This is a known JavaFX WebView HTTP/2 loader bug. It is already worked around in code
-  (`DesktopLauncherSupport.disableWebViewHttp2Loader()` is called at startup). If it
-  recurs (e.g. when running directly via IDE without the desktop profile), pass
-  `-Dcom.sun.webkit.useHTTP2Loader=false` as a java-option.
+  This issue is under active investigation. Run the desktop app from a terminal to
+  capture WebView diagnostics and JavaScript console output.
 
 - **Port conflict in desktop mode**  
   If startup says desktop port is in use, close the conflicting app or run with another port:

@@ -315,6 +315,7 @@ function createCivInline(civName, iconPath, largeIcon) {
     img.alt = '';
 
     img.onerror = () => {
+        console.error('Icon failed to load for "' + civName + '": ' + img.src);
         if (img.dataset.fallbackApplied === 'true') {
             img.style.display = 'none';
             return;

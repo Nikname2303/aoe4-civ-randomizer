@@ -22,22 +22,6 @@ class DesktopLauncherSupportTest {
     }
 
     @Test
-    void disableWebViewHttp2LoaderSetsFalseSystemProperty() {
-        String previous = System.getProperty("com.sun.webkit.useHTTP2Loader");
-        try {
-            System.clearProperty("com.sun.webkit.useHTTP2Loader");
-            DesktopLauncherSupport.disableWebViewHttp2Loader();
-            assertEquals("false", System.getProperty("com.sun.webkit.useHTTP2Loader"));
-        } finally {
-            if (previous == null) {
-                System.clearProperty("com.sun.webkit.useHTTP2Loader");
-            } else {
-                System.setProperty("com.sun.webkit.useHTTP2Loader", previous);
-            }
-        }
-    }
-
-    @Test
     void usesDefaultPortWhenNoConfigurationProvided() {
         assertEquals(DesktopLauncherSupport.DEFAULT_DESKTOP_PORT, DesktopLauncherSupport.resolveDesktopPort());
     }
