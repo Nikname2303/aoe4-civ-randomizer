@@ -81,14 +81,17 @@ input[type="checkbox"] {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    contain: layout paint;
 }
 
 .civ-icon {
+    width: 64px;
     height: 36px;
-    width: auto;
     display: block;
     border-radius: 4px;
     flex-shrink: 0;
+    object-fit: contain;
+    contain: paint;
 }
 
 /* ── Quick Solo Roll ─────────────────────────────────────── */
@@ -120,11 +123,13 @@ input[type="checkbox"] {
 
 /* Large icon used only in the solo roll result */
 .civ-icon-large {
+    width: 160px;
     height: 90px;
-    width: auto;
     display: block;
     border-radius: 6px;
     flex-shrink: 0;
+    object-fit: contain;
+    contain: paint;
 }
 
 .result-text {
@@ -177,6 +182,7 @@ input[type="checkbox"] {
 .assigned-civ {
     color: var(--text-primary);
     font-weight: bold;
+    contain: paint;
 }
 
 .lobby-controls {
@@ -222,6 +228,7 @@ input[type="checkbox"] {
 
 .civ-group {
     margin-bottom: 16px;
+    contain: layout paint;
 }
 
 /* DLC group heading row: heading text + toggle-all checkbox side by side */
@@ -258,6 +265,7 @@ input[type="checkbox"] {
     margin: 4px 14px 4px 0;
     cursor: pointer;
     white-space: nowrap;
+    contain: layout paint;
 }
 
 .civ-item input[type="checkbox"] {
