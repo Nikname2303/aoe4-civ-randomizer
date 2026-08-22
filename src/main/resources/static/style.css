@@ -84,8 +84,9 @@ input[type="checkbox"] {
 }
 
 .civ-icon {
-    width: 34px;
-    height: 34px;
+    height: 36px;
+    width: auto;
+    display: block;
     border-radius: 4px;
     flex-shrink: 0;
 }
@@ -119,8 +120,9 @@ input[type="checkbox"] {
 
 /* Large icon used only in the solo roll result */
 .civ-icon-large {
-    width: 64px;
-    height: 64px;
+    height: 90px;
+    width: auto;
+    display: block;
     border-radius: 6px;
     flex-shrink: 0;
 }
