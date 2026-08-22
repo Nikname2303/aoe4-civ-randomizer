@@ -91,6 +91,7 @@ jpackage `
 
 Notes:
 - Use `--type msi` if you want an MSI installer.
+- Use `--type app-image` to produce a self-contained folder (no installer) that can be zipped and shared directly — the folder contains the `.exe` and the bundled JVM runtime, so recipients can run it without any installation step.
 - Optional icon: add `--icon path\to\icon.ico`. If omitted, default icon is used.
 
 ---
