@@ -11,7 +11,13 @@ final class DesktopLauncherSupport {
     private static final String DESKTOP_PORT_PROPERTY = "desktop.port";
     private static final String DESKTOP_PORT_ENV = "DESKTOP_PORT";
 
+    private static final String WEBKIT_HTTP2_LOADER_PROPERTY = "com.sun.webkit.useHTTP2Loader";
+
     private DesktopLauncherSupport() {}
+
+    static void disableWebViewHttp2Loader() {
+        System.setProperty(WEBKIT_HTTP2_LOADER_PROPERTY, "false");
+    }
 
     static int resolveDesktopPort() {
         String configuredPort = System.getProperty(DESKTOP_PORT_PROPERTY);
