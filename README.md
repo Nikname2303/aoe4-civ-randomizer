@@ -84,9 +84,9 @@ jpackage `
   --name "AoE4 Civ Randomizer" `
   --main-jar randomizer-0.0.1-SNAPSHOT.jar `
   --main-class org.springframework.boot.loader.launch.JarLauncher `
-  --type exe `
+  --type app-image `
   --arguments "--desktop" `
-  --java-options "-Ddesktop.port=18080 --add-exports=javafx.web/com.sun.javafx.webkit=ALL-UNNAMED"
+  --java-options "-Ddesktop.port=18080"
 ```
 
 Notes:
