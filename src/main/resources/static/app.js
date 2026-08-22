@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
     addPlayerRow();       // start with one empty row in the lobby table
 });
 
+const civByName = {};
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  QUICK SOLO ROLL
@@ -28,7 +30,13 @@ document.getElementById('solo-btn').addEventListener('click', async () => {
             return;
         }
         const civ = await res.json();
-        resultEl.textContent = '🏰 ' + civ.name + '  (' + civ.dlc + ')';
+        resultEl.innerHTML = '';
+        const civInline = createCivInline(civ.name, civ.iconPath);
+        const dlcText = document.createElement('span');
+        dlcText.className = 'result-dlc';
+        dlcText.textContent = ' (' + civ.dlc + ')';
+        resultEl.appendChild(civInline);
+        resultEl.appendChild(dlcText);
     } catch (e) {
         resultEl.textContent = '⚠ Could not reach the server.';
         resultEl.className = 'result-text error-text';
@@ -110,7 +118,16 @@ document.getElementById('lobby-btn').addEventListener('click', async () => {
             const civCell = row.querySelector('.assigned-civ');
             if (nameInput && civCell) {
                 const name = nameInput.value.trim();
-                civCell.textContent = assignments[name] || '—';
+                civCell.innerHTML = '';
+
+                if (!name || !assignments[name]) {
+                    civCell.textContent = '—';
+                    return;
+                }
+
+                const civName = assignments[name];
+                const civ = civByName[civName] || {};
+                civCell.appendChild(createCivInline(civName, civ.iconPath));
             }
         });
     } catch (e) {
@@ -136,6 +153,9 @@ async function loadCivs() {
     try {
         const res = await fetch('/api/civs');
         const civs = await res.json();
+        civs.forEach(civ => {
+            civByName[civ.name] = civ;
+        });
         renderCivList(civs);
     } catch (e) {
         container.textContent = 'Could not load civilizations. Is the server running?';
@@ -175,7 +195,7 @@ function renderCivList(civs) {
             checkbox.addEventListener('change', () => toggleCiv(civ.id, checkbox));
 
             label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(' ' + civ.name));
+            label.appendChild(createCivInline(civ.name, civ.iconPath));
             groupEl.appendChild(label);
         });
 
@@ -197,4 +217,26 @@ async function toggleCiv(id, checkbox) {
         checkbox.checked = !checkbox.checked;
         alert('Could not reach the server.');
     }
+}
+
+function createCivInline(civName, iconPath) {
+    const wrapper = document.createElement('span');
+    wrapper.className = 'civ-inline';
+
+    const img = document.createElement('img');
+    img.className = 'civ-icon';
+    img.src = iconPath || '/images/civs/generic.png';
+    img.alt = '';
+    img.width = 28;
+    img.height = 28;
+    img.onerror = () => {
+        img.style.display = 'none';
+    };
+
+    const text = document.createElement('span');
+    text.textContent = civName;
+
+    wrapper.appendChild(img);
+    wrapper.appendChild(text);
+    return wrapper;
 }

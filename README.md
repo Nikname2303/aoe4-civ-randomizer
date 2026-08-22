@@ -48,12 +48,12 @@ src/main/resources/data.sql
 Each line follows this pattern:
 
 ```sql
-INSERT INTO civilization (name, dlc, enabled)
-SELECT 'My New Civ', 'Base Game', TRUE
+INSERT INTO civilization (name, dlc, icon_path, enabled)
+SELECT 'My New Civ', 'Base Game', '/images/civs/my-new-civ.png', TRUE
 WHERE NOT EXISTS (SELECT 1 FROM civilization WHERE name = 'My New Civ');
 ```
 
-- **Add a civ** — copy any existing `INSERT` block and change the name and DLC group.
+- **Add a civ** — copy any existing `INSERT` block and change the name, DLC group, and icon path.
 - **Remove a civ** — delete its block (or just uncheck it in the UI instead).
 - **Rename a civ** — change both the `SELECT` value and the `WHERE name =` value.
 
@@ -66,5 +66,5 @@ The `WHERE NOT EXISTS` guard means your enable/disable choices are never overwri
 - **Local use only** — no authentication, no multi-user support, no network exposure.
 - **H2 database** — stored in `./data/aoe4randomizer.mv.db` (gitignored). Delete this file to reset all settings to defaults.
 - **H2 console** (optional debugging) — uncomment the two lines in `application.properties` to enable it at `http://localhost:8080/h2-console`.
-- **Planned features** (not in this version): civ icons/images, pick history / stats, multi-profile support.
-
+- **Civ icons** — local files are stored in `src/main/resources/static/images/civs/`. Keep filenames lowercase and hyphenated to match `icon_path` values.
+- **Planned features** (not in this version): pick history / stats, multi-profile support.

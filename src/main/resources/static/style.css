@@ -1,7 +1,21 @@
 /* =============================================================
    AoE4 Civ Randomizer — style.css
-   Simple, readable styles. No frameworks.
+   Dark charcoal + copper theme variables live at the top for easy tweaking.
    ============================================================= */
+
+/* ── Color palette (edit these variables to retheme quickly) ───────────────── */
+:root {
+    --bg-primary: #1b1b1d;
+    --bg-panel: #2c2c2e;
+    --bg-panel-alt: #333335;
+    --accent: #b5651d;
+    --accent-hover: #cc7a2e;
+    --text-primary: #e8e6e3;
+    --text-secondary: #b8b3ac;
+    --border-color: #4a433a;
+    --error-bg: #482022;
+    --error-text: #ffd4d4;
+}
 
 /* ── Global ───────────────────────────────────────────────── */
 body {
@@ -9,43 +23,43 @@ body {
     max-width: 900px;
     margin: 0 auto;
     padding: 20px;
-    background-color: #1a1a2e;
-    color: #e0e0e0;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 h1 {
-    color: #f4c430;
-    border-bottom: 2px solid #f4c430;
+    color: var(--accent-hover);
+    border-bottom: 2px solid var(--accent);
     padding-bottom: 8px;
 }
 
 h2 {
-    color: #c8a800;
+    color: var(--accent-hover);
     margin-top: 32px;
 }
 
 h3 {
-    color: #a0c0e0;
+    color: var(--text-secondary);
     margin: 16px 0 6px 0;
     font-size: 1em;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 4px;
 }
 
 section {
-    background-color: #16213e;
-    border: 1px solid #2a2a4a;
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 24px;
 }
 
 button {
-    background-color: #f4c430;
-    color: #1a1a2e;
-    border: none;
+    background-color: var(--accent);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
     padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
@@ -55,7 +69,25 @@ button {
 }
 
 button:hover {
-    background-color: #ffd700;
+    background-color: var(--accent-hover);
+}
+
+input[type="checkbox"] {
+    accent-color: var(--accent);
+}
+
+/* ── Shared civ inline display ────────────────────────────── */
+.civ-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.civ-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    flex-shrink: 0;
 }
 
 /* ── Quick Solo Roll ─────────────────────────────────────── */
@@ -65,15 +97,21 @@ button:hover {
 }
 
 .result-text {
-    font-size: 1.3em;
+    font-size: 1.2em;
     margin-top: 12px;
     font-weight: bold;
-    color: #f4c430;
-    min-height: 1.5em;
+    color: var(--text-primary);
+    min-height: 1.6em;
+}
+
+.result-dlc {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    font-weight: normal;
 }
 
 .error-text {
-    color: #ff6b6b;
+    color: var(--error-text);
 }
 
 /* ── Lobby Randomizer ────────────────────────────────────── */
@@ -85,20 +123,20 @@ button:hover {
 
 #player-table th,
 #player-table td {
-    border: 1px solid #2a2a4a;
+    border: 1px solid var(--border-color);
     padding: 8px 12px;
     text-align: left;
 }
 
 #player-table th {
-    background-color: #0f3460;
-    color: #e0e0e0;
+    background-color: var(--bg-panel-alt);
+    color: var(--text-primary);
 }
 
 .player-name-input {
-    background: #1a1a2e;
-    color: #e0e0e0;
-    border: 1px solid #444;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 1em;
@@ -106,7 +144,7 @@ button:hover {
 }
 
 .assigned-civ {
-    color: #f4c430;
+    color: var(--text-primary);
     font-weight: bold;
 }
 
@@ -116,6 +154,7 @@ button:hover {
 
 .lobby-options {
     margin: 12px 0;
+    color: var(--text-secondary);
 }
 
 .lobby-options label {
@@ -130,9 +169,9 @@ button:hover {
 
 /* Error banner shown when the lobby API returns an error */
 .error-banner {
-    background-color: #5a1a1a;
-    color: #ff6b6b;
-    border: 1px solid #ff6b6b;
+    background-color: var(--error-bg);
+    color: var(--error-text);
+    border: 1px solid #9d3d3d;
     border-radius: 4px;
     padding: 10px 14px;
     margin-bottom: 12px;
@@ -145,7 +184,7 @@ button:hover {
 
 /* ── Civ Selection Panel ────────────────────────────────── */
 .hint {
-    color: #a0a0a0;
+    color: var(--text-secondary);
     font-size: 0.9em;
     margin-top: -8px;
 }
@@ -155,13 +194,15 @@ button:hover {
 }
 
 .civ-item {
-    display: inline-block;
-    margin: 3px 12px 3px 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 4px 14px 4px 0;
     cursor: pointer;
     white-space: nowrap;
 }
 
 .civ-item input[type="checkbox"] {
-    margin-right: 4px;
+    margin: 0;
     cursor: pointer;
 }
