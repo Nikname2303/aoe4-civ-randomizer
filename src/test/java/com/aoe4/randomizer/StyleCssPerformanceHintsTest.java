@@ -1,9 +1,9 @@
 package com.aoe4.randomizer;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,8 +12,7 @@ class StyleCssPerformanceHintsTest {
 
     @Test
     void styleCssUsesFixedIconSizingAndContainmentHints() throws IOException {
-        String styleCss = new ClassPathResource("static/style.css")
-                .getContentAsString(StandardCharsets.UTF_8);
+        String styleCss = readResource("/static/style.css");
 
         assertTrue(styleCss.contains(".civ-inline {") && styleCss.contains("contain: layout paint;"),
                 "civ inline rendering should use containment hints");
@@ -25,5 +24,14 @@ class StyleCssPerformanceHintsTest {
                 "large civ icons should use fixed rendered dimensions");
         assertTrue(styleCss.contains(".civ-item {") && styleCss.contains(".civ-group {"),
                 "civ groups and items should keep performance-related styling");
+    }
+
+    private String readResource(String path) throws IOException {
+        try (InputStream stream = getClass().getResourceAsStream(path)) {
+            if (stream == null) {
+                throw new AssertionError("Missing resource: " + path);
+            }
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 }

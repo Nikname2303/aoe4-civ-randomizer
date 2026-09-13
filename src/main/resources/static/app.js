@@ -1,42 +1,47 @@
 /* =============================================================
    AoE4 Civ Randomizer — app.js
-   Plain vanilla JS. No frameworks. Uses fetch() for all API calls.
+   Plain vanilla JS. No frameworks. Uses the JavaFX bridge for all backend calls.
    ============================================================= */
 
-// ── On page load: fetch civs and render the list, add a default player row ──
-document.addEventListener('DOMContentLoaded', () => {
-    loadCivs();
-    addPlayerRow();       // start with one empty row in the lobby table
-});
-
 const civByName = {};
-const CIV_ICON_CACHE_TOKEN = 'desktop-icon-cache-1';
 const GENERIC_CIV_ICON_PATH = '/images/civs/generic.png';
+let genericIconDataUri = '';
+let appInitialized = false;
 
-// ── Concurrency-limited image loader queue (kept for non-data-URI fallback paths) ─
-const MAX_CONCURRENT_IMAGE_LOADS = 3;
-let activeLoads = 0;
-const loadQueue = [];
+window.appInit = function appInit() {
+    if (appInitialized) {
+        return;
+    }
+    appInitialized = true;
+    initializeApp();
+};
 
-function queueImageLoad(img, src) {
-    loadQueue.push({ img, src });
-    processQueue();
+function initializeApp() {
+    loadGenericIcon();
+    loadCivs();
+    addPlayerRow();
 }
 
-function processQueue() {
-    while (activeLoads < MAX_CONCURRENT_IMAGE_LOADS && loadQueue.length > 0) {
-        const { img, src } = loadQueue.shift();
-        activeLoads++;
-        const done = () => {
-            activeLoads--;
-            processQueue();
-        };
-        img.addEventListener('load', done, { once: true });
-        img.addEventListener('error', done, { once: true });
-        img.src = src;
+function bridgeCallJson(methodName, ...args) {
+    if (!window.javaBridge || typeof window.javaBridge[methodName] !== 'function') {
+        throw new Error('Desktop bridge is not available.');
+    }
+    const raw = window.javaBridge[methodName](...args);
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.error) {
+        throw new Error(parsed.message || 'Error');
+    }
+    return parsed;
+}
+
+function loadGenericIcon() {
+    try {
+        const result = bridgeCallJson('getGenericIcon');
+        genericIconDataUri = result.iconDataUri || '';
+    } catch (e) {
+        genericIconDataUri = '';
     }
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  QUICK SOLO ROLL
@@ -48,32 +53,21 @@ document.getElementById('solo-btn').addEventListener('click', async () => {
     resultEl.className = 'solo-result-area';
 
     try {
-        const res = await fetch('/api/random/single', { method: 'POST' });
-        if (!res.ok) {
-            const err = await res.json();
-            resultEl.textContent = '⚠ ' + (err.message || 'Error');
-            resultEl.classList.add('error-text');
-            return;
-        }
-        const civ = await res.json();
+        const civ = await bridgeCallJson('randomSingle');
         resultEl.innerHTML = '';
-        // Use the large-icon variant for the solo result
         resultEl.appendChild(createCivInline(civ, true));
     } catch (e) {
-        resultEl.textContent = '⚠ Could not reach the server.';
+        resultEl.textContent = '⚠ ' + (e.message || 'Error');
         resultEl.classList.add('error-text');
     }
 });
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  LOBBY RANDOMIZER
 // ══════════════════════════════════════════════════════════════════════════════
 
-// ── Add a new empty player row ──
 document.getElementById('add-player-btn').addEventListener('click', addPlayerRow);
 
-// ── Remove the last player row ──
 document.getElementById('remove-player-btn').addEventListener('click', () => {
     const tbody = document.getElementById('player-rows');
     if (tbody.rows.length > 1) {
@@ -85,7 +79,6 @@ function addPlayerRow() {
     const tbody = document.getElementById('player-rows');
     const row = tbody.insertRow();
 
-    // Left column: editable player name input
     const nameCell = row.insertCell(0);
     const input = document.createElement('input');
     input.type = 'text';
@@ -93,18 +86,15 @@ function addPlayerRow() {
     input.className = 'player-name-input';
     nameCell.appendChild(input);
 
-    // Right column: assigned civ (empty until randomized)
     const civCell = row.insertCell(1);
     civCell.textContent = '—';
     civCell.className = 'assigned-civ';
 }
 
-// ── Randomize lobby ──
 document.getElementById('lobby-btn').addEventListener('click', async () => {
     const errorEl = document.getElementById('lobby-error');
     errorEl.classList.add('hidden');
 
-    // Collect non-empty player names from the table
     const inputs = document.querySelectorAll('.player-name-input');
     const playerNames = Array.from(inputs)
         .map(i => i.value.trim())
@@ -118,22 +108,7 @@ document.getElementById('lobby-btn').addEventListener('click', async () => {
     const allowDuplicates = document.getElementById('allow-duplicates-checkbox').checked;
 
     try {
-        const res = await fetch('/api/random/lobby', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ playerNames, allowDuplicates })
-        });
-
-        if (!res.ok) {
-            const err = await res.json();
-            showLobbyError(err.message || 'An error occurred.');
-            return;
-        }
-
-        // Result is { "Alice": "English", "Bob": "Mongols", ... }
-        const assignments = await res.json();
-
-        // Write the assigned civ into the right column of each row
+        const assignments = await bridgeCallJson('randomLobby', JSON.stringify({ playerNames, allowDuplicates }));
         const rows = document.querySelectorAll('#player-rows tr');
         rows.forEach(row => {
             const nameInput = row.querySelector('.player-name-input');
@@ -153,7 +128,7 @@ document.getElementById('lobby-btn').addEventListener('click', async () => {
             }
         });
     } catch (e) {
-        showLobbyError('Could not reach the server.');
+        showLobbyError(e.message || 'An error occurred.');
     }
 });
 
@@ -162,7 +137,6 @@ function showLobbyError(msg) {
     el.textContent = '⚠ ' + msg;
     el.classList.remove('hidden');
 }
-
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  CIV SELECTION PANEL
@@ -173,14 +147,13 @@ async function loadCivs() {
     container.textContent = 'Loading…';
 
     try {
-        const res = await fetch('/api/civs');
-        const civs = await res.json();
+        const civs = await bridgeCallJson('getCivs');
         civs.forEach(civ => {
             civByName[civ.name] = civ;
         });
         renderCivList(civs);
     } catch (e) {
-        container.textContent = 'Could not load civilizations. Is the server running?';
+        container.textContent = 'Could not load civilizations.';
     }
 }
 
@@ -188,19 +161,16 @@ function renderCivList(civs) {
     const container = document.getElementById('civ-list');
     container.innerHTML = '';
 
-    // Group civs by DLC name
     const groups = {};
     civs.forEach(civ => {
         if (!groups[civ.dlc]) groups[civ.dlc] = [];
         groups[civ.dlc].push(civ);
     });
 
-    // Render each group as a subsection with a heading + "Toggle all" checkbox
     Object.keys(groups).sort().forEach(dlcName => {
         const groupEl = document.createElement('div');
         groupEl.className = 'civ-group';
 
-        // Heading row: DLC name h3 + toggle-all checkbox
         const headingRow = document.createElement('div');
         headingRow.className = 'dlc-heading-row';
 
@@ -226,7 +196,6 @@ function renderCivList(civs) {
         headingRow.appendChild(toggleLabel);
         groupEl.appendChild(headingRow);
 
-        // Per-civ checkboxes
         const civCheckboxes = [];
         groups[dlcName].forEach(civ => {
             const label = document.createElement('label');
@@ -238,7 +207,6 @@ function renderCivList(civs) {
             checkbox.dataset.civId = civ.id;
             civCheckboxes.push(checkbox);
 
-            // Toggling a checkbox immediately persists via the API
             checkbox.addEventListener('change', () => {
                 toggleCiv(civ.id, checkbox).then(() => {
                     updateDlcToggleState(toggleCheckbox, civCheckboxes);
@@ -250,21 +218,11 @@ function renderCivList(civs) {
             groupEl.appendChild(label);
         });
 
-        // Bulk toggle: set all civs in DLC to the same state via the API
         toggleCheckbox.addEventListener('change', async () => {
             const newEnabled = toggleCheckbox.checked;
             toggleCheckbox.indeterminate = false;
             try {
-                const params = new URLSearchParams({ dlcName, enabled: newEnabled });
-                const res = await fetch('/api/civs/dlc/set?' + params.toString(), { method: 'POST' });
-                if (!res.ok) {
-                    toggleCheckbox.checked = !newEnabled;
-                    toggleCheckbox.indeterminate = false;
-                    alert('Could not save the change. Please try again.');
-                    return;
-                }
-                const updated = await res.json();
-                // Sync per-civ checkboxes with the server response
+                const updated = await bridgeCallJson('setDlcEnabled', dlcName, newEnabled);
                 updated.forEach(updatedCiv => {
                     const cb = civCheckboxes.find(c => String(c.dataset.civId) === String(updatedCiv.id));
                     if (cb) cb.checked = updatedCiv.enabled;
@@ -273,7 +231,8 @@ function renderCivList(civs) {
                 updateDlcToggleState(toggleCheckbox, civCheckboxes);
             } catch (e) {
                 toggleCheckbox.checked = !newEnabled;
-                alert('Could not reach the server.');
+                toggleCheckbox.indeterminate = false;
+                alert('Could not save the change. Please try again.');
             }
         });
 
@@ -281,7 +240,6 @@ function renderCivList(civs) {
     });
 }
 
-/** Syncs the DLC toggle checkbox state from the individual civ checkboxes. */
 function updateDlcToggleState(toggleCheckbox, civCheckboxes) {
     const allOn = civCheckboxes.every(cb => cb.checked);
     const allOff = civCheckboxes.every(cb => !cb.checked);
@@ -290,28 +248,16 @@ function updateDlcToggleState(toggleCheckbox, civCheckboxes) {
 }
 
 async function toggleCiv(id, checkbox) {
-    // Optimistically update the UI, then confirm with the server
     try {
-        const res = await fetch('/api/civs/' + id + '/toggle', { method: 'POST' });
-        if (!res.ok) {
-            // Revert the checkbox if the server call failed
-            checkbox.checked = !checkbox.checked;
-            alert('Could not save the change. Please try again.');
-        }
-        // On success the server returns the updated civ — we trust the checkbox state we already set
+        const updatedCiv = await bridgeCallJson('toggleCiv', id);
+        checkbox.checked = updatedCiv.enabled;
+        civByName[updatedCiv.name] = updatedCiv;
     } catch (e) {
         checkbox.checked = !checkbox.checked;
-        alert('Could not reach the server.');
+        alert('Could not save the change. Please try again.');
     }
 }
 
-/**
- * Creates an inline civ element (icon + name) from a civ object.
- * Uses iconDataUri (base64 data URI) when available to avoid HTTP requests,
- * falling back to the iconPath URL otherwise.
- * @param {object} civ - civ object with name, iconDataUri (optional), iconPath (optional)
- * @param {boolean} largeIcon - whether to use the large icon class
- */
 function createCivInline(civ, largeIcon) {
     const civName = civ.name || '';
     const wrapper = document.createElement('span');
@@ -324,11 +270,11 @@ function createCivInline(civ, largeIcon) {
     img.loading = largeIcon ? 'eager' : 'lazy';
 
     if (civ.iconDataUri) {
-        // Data URIs resolve synchronously without HTTP requests — set directly.
         img.src = civ.iconDataUri;
+    } else if (genericIconDataUri) {
+        img.src = genericIconDataUri;
     } else {
-        // Fallback: load via HTTP with cache-busting token (legacy/browser path).
-        queueImageLoad(img, withIconCacheToken(civ.iconPath || GENERIC_CIV_ICON_PATH));
+        img.src = normalizeIconPath(civ.iconPath || GENERIC_CIV_ICON_PATH);
     }
 
     img.onerror = () => {
@@ -339,7 +285,11 @@ function createCivInline(civ, largeIcon) {
         }
 
         img.dataset.fallbackApplied = 'true';
-        img.src = withIconCacheToken(GENERIC_CIV_ICON_PATH);
+        if (genericIconDataUri) {
+            img.src = genericIconDataUri;
+        } else {
+            img.src = normalizeIconPath(GENERIC_CIV_ICON_PATH);
+        }
     };
 
     const text = document.createElement('span');
@@ -350,6 +300,6 @@ function createCivInline(civ, largeIcon) {
     return wrapper;
 }
 
-function withIconCacheToken(iconPath) {
-    return iconPath + (iconPath.includes('?') ? '&' : '?') + 'v=' + CIV_ICON_CACHE_TOKEN;
+function normalizeIconPath(iconPath) {
+    return (iconPath || GENERIC_CIV_ICON_PATH).replace(/^\//, '');
 }

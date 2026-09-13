@@ -1,105 +1,86 @@
 package com.aoe4.randomizer.desktop;
 
-import com.aoe4.randomizer.Aoe4RandomizerApplication;
+import com.aoe4.randomizer.bridge.JavaBridge;
+import com.aoe4.randomizer.persistence.DatabaseManager;
+import com.aoe4.randomizer.repository.CivilizationRepository;
+import com.aoe4.randomizer.service.CivIconService;
+import com.aoe4.randomizer.service.RandomizerService;
 import com.sun.javafx.webkit.WebConsoleListener;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.concurrent.Worker;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ConfigurableApplicationContext;
+import netscape.javascript.JSObject;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.net.URL;
 
 public class DesktopLauncher extends Application {
-    private final ExecutorService bootstrapExecutor = Executors.newSingleThreadExecutor();
-    private ConfigurableApplicationContext springContext;
-    private volatile boolean shuttingDown;
+    private JavaBridge javaBridge;
+
+    @Override
+    public void init() {
+        DatabaseManager databaseManager = DatabaseManager.createDefault();
+        databaseManager.initialize();
+        CivilizationRepository repository = new CivilizationRepository(databaseManager);
+        RandomizerService randomizerService = new RandomizerService(repository);
+        CivIconService civIconService = new CivIconService();
+        javaBridge = new JavaBridge(randomizerService, civIconService);
+    }
 
     @Override
     public void start(Stage primaryStage) {
-        final int desktopPort;
-        try {
-            desktopPort = DesktopLauncherSupport.resolveDesktopPort();
-        } catch (IllegalArgumentException ex) {
-            showStartupError("Invalid desktop port configuration", ex.getMessage());
-            shutdownAndExit();
-            return;
-        }
-
-        if (!DesktopLauncherSupport.isPortAvailable(desktopPort)) {
-            showStartupError(
-                    "Desktop port is already in use",
-                    "Port " + desktopPort + " is busy. Close the conflicting app or run with -Ddesktop.port=<free-port>."
-            );
-            shutdownAndExit();
-            return;
-        }
-
         primaryStage.setTitle("AoE4 Civ Randomizer");
         primaryStage.setWidth(1280);
         primaryStage.setHeight(820);
-        primaryStage.setOnCloseRequest(event -> shutdownAndExit());
+        primaryStage.setOnCloseRequest(event -> Platform.exit());
 
-        CompletableFuture.supplyAsync(() -> startServerAndWait(desktopPort), bootstrapExecutor)
-                .thenAccept(appUrl -> Platform.runLater(() -> showMainWindow(primaryStage, appUrl)))
-                .exceptionally(ex -> {
-                    Platform.runLater(() -> {
-                        Throwable rootCause = rootCause(ex);
-                        showStartupError("Failed to start AoE4 Civ Randomizer", rootCause.getMessage());
-                        shutdownAndExit();
-                    });
-                    return null;
-                });
-    }
-
-    private String startServerAndWait(int desktopPort) {
-        springContext = SpringApplication.run(
-                Aoe4RandomizerApplication.class,
-                "--server.port=" + desktopPort
-        );
-        if (shuttingDown) {
-            springContext.close();
-            springContext = null;
-            throw new IllegalStateException("Desktop launcher was closed during startup.");
-        }
-        String appUrl = DesktopLauncherSupport.localAppUrl(desktopPort);
-        boolean ready = DesktopLauncherSupport.waitForServerReady(appUrl, 60, 300);
-        if (!ready) {
-            springContext.close();
-            springContext = null;
-            throw new IllegalStateException("Local server did not become ready in time.");
-        }
-        return appUrl;
-    }
-
-    private void showMainWindow(Stage stage, String appUrl) {
         WebView webView = new WebView();
         WebEngine engine = webView.getEngine();
-        boolean debugLogging = Boolean.getBoolean("desktop.debug");
+        configureDebugLogging(engine);
 
-        if (debugLogging) {
-            WebConsoleListener.setDefaultListener((view, message, lineNumber, sourceId) ->
-                    System.out.println("[webview-console] " + sourceId + ":" + lineNumber + " " + message));
-            engine.setOnError(event -> System.out.println("[webview-error] " + event.getMessage()));
-            engine.getLoadWorker().exceptionProperty().addListener((obs, oldEx, newEx) -> {
-                if (newEx != null) {
-                    System.out.println("[webview-load-exception] " + newEx);
-                    newEx.printStackTrace();
-                }
-            });
-            engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) ->
-                    System.out.println("[webview-load-state] " + oldState + " -> " + newState));
+        URL indexUrl = DesktopLauncher.class.getResource("/static/index.html");
+        if (indexUrl == null) {
+            showStartupError("Missing UI resources", "Could not find /static/index.html in the application resources.");
+            Platform.exit();
+            return;
         }
 
-        engine.load(appUrl);
-        stage.setScene(new Scene(webView));
-        stage.show();
+        engine.getLoadWorker().stateProperty().addListener((observable, oldState, newState) -> {
+            if (newState == Worker.State.SUCCEEDED) {
+                JSObject window = (JSObject) engine.executeScript("window");
+                window.setMember("javaBridge", javaBridge);
+                engine.executeScript("window.appInit && window.appInit();");
+            } else if (newState == Worker.State.FAILED) {
+                Throwable exception = engine.getLoadWorker().getException();
+                showStartupError("Failed to load UI", exception == null ? "Unknown UI load error." : exception.getMessage());
+                Platform.exit();
+            }
+        });
+
+        engine.load(indexUrl.toExternalForm());
+        primaryStage.setScene(new Scene(webView));
+        primaryStage.show();
+    }
+
+    private void configureDebugLogging(WebEngine engine) {
+        if (!Boolean.getBoolean("desktop.debug")) {
+            return;
+        }
+        WebConsoleListener.setDefaultListener((view, message, lineNumber, sourceId) ->
+                System.out.println("[webview-console] " + sourceId + ":" + lineNumber + " " + message));
+        engine.setOnError(event -> System.out.println("[webview-error] " + event.getMessage()));
+        engine.getLoadWorker().exceptionProperty().addListener((obs, oldEx, newEx) -> {
+            if (newEx != null) {
+                System.out.println("[webview-load-exception] " + newEx);
+                newEx.printStackTrace();
+            }
+        });
+        engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) ->
+                System.out.println("[webview-load-state] " + oldState + " -> " + newState));
     }
 
     private void showStartupError(String title, String message) {
@@ -108,24 +89,6 @@ public class DesktopLauncher extends Application {
         alert.setHeaderText(title);
         alert.setContentText(message == null ? "Unknown startup error." : message);
         alert.showAndWait();
-    }
-
-    private Throwable rootCause(Throwable throwable) {
-        Throwable current = throwable;
-        while (current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
-    }
-
-    private void shutdownAndExit() {
-        shuttingDown = true;
-        if (springContext != null) {
-            springContext.close();
-            springContext = null;
-        }
-        bootstrapExecutor.shutdownNow();
-        Platform.exit();
     }
 
     public static void main(String[] args) {
