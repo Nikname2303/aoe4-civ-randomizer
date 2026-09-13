@@ -59,7 +59,7 @@ class JavaBridgeRandomizerTest {
                         {"playerNames":["Alice","Bob"],"allowDuplicates":false}
                         """));
 
-        assertTrue(response.get("error").asBoolean());
+        assertTrue(response.get("__bridgeError").asBoolean());
         assertTrue(response.get("message").asText().contains("Not enough enabled civilizations"));
     }
 

@@ -23,12 +23,36 @@ function initializeApp() {
 }
 
 function bridgeCallJson(methodName, ...args) {
-    if (!window.javaBridge || typeof window.javaBridge[methodName] !== 'function') {
+    if (!window.javaBridge) {
         throw new Error('Desktop bridge is not available.');
     }
-    const raw = window.javaBridge[methodName](...args);
+
+    let raw;
+    switch (methodName) {
+        case 'getCivs':
+            raw = window.javaBridge.getCivs();
+            break;
+        case 'getGenericIcon':
+            raw = window.javaBridge.getGenericIcon();
+            break;
+        case 'randomSingle':
+            raw = window.javaBridge.randomSingle();
+            break;
+        case 'randomLobby':
+            raw = window.javaBridge.randomLobby(args[0]);
+            break;
+        case 'toggleCiv':
+            raw = window.javaBridge.toggleCiv(args[0]);
+            break;
+        case 'setDlcEnabled':
+            raw = window.javaBridge.setDlcEnabled(args[0], args[1]);
+            break;
+        default:
+            throw new Error('Unsupported bridge method: ' + methodName);
+    }
+
     const parsed = JSON.parse(raw);
-    if (parsed && parsed.error) {
+    if (parsed && parsed.__bridgeError === true) {
         throw new Error(parsed.message || 'Error');
     }
     return parsed;

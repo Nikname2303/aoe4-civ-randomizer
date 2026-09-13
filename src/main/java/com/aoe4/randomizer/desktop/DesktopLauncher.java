@@ -56,8 +56,8 @@ public class DesktopLauncher extends Application {
                 JSObject window = (JSObject) engine.executeScript("window");
                 initializeWindow(window, engine::executeScript, resourceBaseUrl);
             } else if (newState == Worker.State.FAILED) {
-                showStartupError("Failed to load UI", loadFailureMessage(engine.getLoadWorker().getException()));
-                Platform.exit();
+                handleLoadFailure(message -> showStartupError("Failed to load UI", message), Platform::exit,
+                        engine.getLoadWorker().getException());
             }
         });
 
@@ -80,6 +80,11 @@ public class DesktopLauncher extends Application {
         window.setMember("javaBridge", javaBridge);
         window.setMember("appBaseUrl", resourceBaseUrl);
         scriptExecutor.accept("window.appInit && window.appInit();");
+    }
+
+    void handleLoadFailure(Consumer<String> errorReporter, Runnable shutdownAction, Throwable exception) {
+        errorReporter.accept(loadFailureMessage(exception));
+        shutdownAction.run();
     }
 
     String loadFailureMessage(Throwable exception) {

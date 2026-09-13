@@ -60,7 +60,7 @@ public class JavaBridge {
         try {
             return supplier.get();
         } catch (Exception ex) {
-            return writeJson(Map.of("error", true, "message", messageFor(ex)));
+            return writeJson(Map.of("__bridgeError", true, "message", messageFor(ex)));
         }
     }
 

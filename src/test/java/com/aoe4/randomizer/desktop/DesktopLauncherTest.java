@@ -10,6 +10,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,6 +34,18 @@ class DesktopLauncherTest {
         assertSame(context.javaBridge(), window.members.get("javaBridge"));
         assertEquals("jar:file:/tmp/app!/static/", window.members.get("appBaseUrl"));
         assertEquals("window.appInit && window.appInit();", executedScript.get());
+    }
+
+    @Test
+    void handleLoadFailureReportsMessageAndShutsDown() {
+        DesktopLauncher launcher = new DesktopLauncher();
+        AtomicReference<String> reportedMessage = new AtomicReference<>();
+        AtomicBoolean shutdownTriggered = new AtomicBoolean(false);
+
+        launcher.handleLoadFailure(reportedMessage::set, () -> shutdownTriggered.set(true), new IllegalStateException("boom"));
+
+        assertEquals("boom", reportedMessage.get());
+        assertTrue(shutdownTriggered.get());
     }
 
     @Test

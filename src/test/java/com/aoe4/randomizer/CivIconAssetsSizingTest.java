@@ -22,13 +22,6 @@ class CivIconAssetsSizingTest {
 
     @Test
     void civIconsAreSizedForRenderedDimensions() throws Exception {
-        try (Stream<Path> resources = Files.list(resolveIconsDirectory())) {
-            resources.filter(path -> path.getFileName().toString().endsWith(".png"))
-                    .forEach(this::assertImageDimensions);
-        }
-    }
-
-    private Path resolveIconsDirectory() throws IOException, URISyntaxException {
         URL resource = getClass().getResource("/static/images/civs");
         if (resource == null) {
             throw new AssertionError("Missing civ icons directory");
@@ -36,15 +29,31 @@ class CivIconAssetsSizingTest {
 
         URI uri = resource.toURI();
         if ("jar".equals(uri.getScheme())) {
-            FileSystem fileSystem = FileSystems.newFileSystem(uri, Map.of());
-            return fileSystem.getPath("/static/images/civs");
+            try (FileSystem fileSystem = openJarFileSystem(uri);
+                 Stream<Path> resources = Files.list(fileSystem.getPath("/static/images/civs"))) {
+                resources.filter(path -> path.getFileName().toString().endsWith(".png"))
+                        .forEach(this::assertImageDimensions);
+            }
+            return;
         }
-        return Path.of(uri);
+
+        try (Stream<Path> resources = Files.list(Path.of(uri))) {
+            resources.filter(path -> path.getFileName().toString().endsWith(".png"))
+                    .forEach(this::assertImageDimensions);
+        }
+    }
+
+    private FileSystem openJarFileSystem(URI uri) throws IOException {
+        try {
+            return FileSystems.newFileSystem(uri, Map.of());
+        } catch (java.nio.file.FileSystemAlreadyExistsException ex) {
+            return FileSystems.getFileSystem(uri);
+        }
     }
 
     private void assertImageDimensions(Path path) {
         try {
-            BufferedImage image = ImageIO.read(path.toFile());
+            BufferedImage image = ImageIO.read(path.toUri().toURL());
             assertNotNull(image, "Expected to read civ icon image: " + path.getFileName());
 
             String filename = path.getFileName().toString();
