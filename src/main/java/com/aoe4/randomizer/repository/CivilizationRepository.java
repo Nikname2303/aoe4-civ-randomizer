@@ -68,20 +68,25 @@ public class CivilizationRepository {
 
     public List<Civilization> saveAll(List<Civilization> civilizations) {
         String sql = "UPDATE civilization SET name = ?, dlc = ?, icon_path = ?, enabled = ? WHERE id = ?";
-        try (Connection connection = databaseManager.openConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        Connection connection = null;
+        try {
+            connection = databaseManager.openConnection();
             connection.setAutoCommit(false);
-            for (Civilization civilization : civilizations) {
-                bindCivilization(statement, civilization);
-                statement.setLong(5, civilization.getId());
-                statement.addBatch();
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                for (Civilization civilization : civilizations) {
+                    bindCivilization(statement, civilization);
+                    statement.setLong(5, civilization.getId());
+                    statement.addBatch();
+                }
+                statement.executeBatch();
             }
-            statement.executeBatch();
             connection.commit();
-            connection.setAutoCommit(true);
             return civilizations;
         } catch (SQLException ex) {
+            rollbackQuietly(connection);
             throw new IllegalStateException("Failed to save civilizations", ex);
+        } finally {
+            closeQuietly(connection);
         }
     }
 
@@ -118,5 +123,25 @@ public class CivilizationRepository {
         statement.setString(2, civilization.getDlc());
         statement.setString(3, civilization.getIconPath());
         statement.setBoolean(4, civilization.isEnabled());
+    }
+
+    private void rollbackQuietly(Connection connection) {
+        if (connection == null) {
+            return;
+        }
+        try {
+            connection.rollback();
+        } catch (SQLException ignored) {
+        }
+    }
+
+    private void closeQuietly(Connection connection) {
+        if (connection == null) {
+            return;
+        }
+        try {
+            connection.close();
+        } catch (SQLException ignored) {
+        }
     }
 }

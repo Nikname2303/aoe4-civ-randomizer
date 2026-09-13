@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AppJsImageLoadQueueTest {
 
     @Test
-    void appJsUsesDesktopBridgeAndResourceFallbacks() throws IOException {
+    void appJsUsesDesktopBridgeAndAbsoluteResourceFallbacks() throws IOException {
         String appJs = readResource("/static/app.js");
 
         assertTrue(appJs.contains("window.appInit = function appInit()"),
@@ -24,7 +24,7 @@ class AppJsImageLoadQueueTest {
                 "lobby randomization should use the Java bridge");
         assertTrue(appJs.contains("bridgeCallJson('setDlcEnabled'"),
                 "DLC toggles should use the Java bridge");
-        assertTrue(appJs.contains("img.src = normalizeIconPath(civ.iconPath || GENERIC_CIV_ICON_PATH);"),
+        assertTrue(appJs.contains("img.src = resolveAbsoluteResourceUrl(civ.iconPath || GENERIC_CIV_ICON_PATH);"),
                 "icon fallback should resolve bundled resource paths without HTTP");
     }
 

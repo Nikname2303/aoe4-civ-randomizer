@@ -17,6 +17,7 @@ import javafx.stage.Stage;
 import netscape.javascript.JSObject;
 
 import java.net.URL;
+import java.util.function.Consumer;
 
 public class DesktopLauncher extends Application {
     private JavaBridge javaBridge;
@@ -49,14 +50,13 @@ public class DesktopLauncher extends Application {
             return;
         }
 
+        String resourceBaseUrl = resolveResourceBaseUrl(indexUrl);
         engine.getLoadWorker().stateProperty().addListener((observable, oldState, newState) -> {
             if (newState == Worker.State.SUCCEEDED) {
                 JSObject window = (JSObject) engine.executeScript("window");
-                window.setMember("javaBridge", javaBridge);
-                engine.executeScript("window.appInit && window.appInit();");
+                initializeWindow(window, engine::executeScript, resourceBaseUrl);
             } else if (newState == Worker.State.FAILED) {
-                Throwable exception = engine.getLoadWorker().getException();
-                showStartupError("Failed to load UI", exception == null ? "Unknown UI load error." : exception.getMessage());
+                showStartupError("Failed to load UI", loadFailureMessage(engine.getLoadWorker().getException()));
                 Platform.exit();
             }
         });
@@ -64,6 +64,26 @@ public class DesktopLauncher extends Application {
         engine.load(indexUrl.toExternalForm());
         primaryStage.setScene(new Scene(webView));
         primaryStage.show();
+    }
+
+    String resolveResourceBaseUrl(URL indexUrl) {
+        URL staticRootUrl = DesktopLauncher.class.getResource("/static/");
+        if (staticRootUrl != null) {
+            return staticRootUrl.toExternalForm();
+        }
+        String indexUrlText = indexUrl.toExternalForm();
+        int slashIndex = indexUrlText.lastIndexOf('/');
+        return slashIndex >= 0 ? indexUrlText.substring(0, slashIndex + 1) : indexUrlText;
+    }
+
+    void initializeWindow(JSObject window, Consumer<String> scriptExecutor, String resourceBaseUrl) {
+        window.setMember("javaBridge", javaBridge);
+        window.setMember("appBaseUrl", resourceBaseUrl);
+        scriptExecutor.accept("window.appInit && window.appInit();");
+    }
+
+    String loadFailureMessage(Throwable exception) {
+        return exception == null ? "Unknown UI load error." : exception.getMessage();
     }
 
     private void configureDebugLogging(WebEngine engine) {

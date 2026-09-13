@@ -274,7 +274,7 @@ function createCivInline(civ, largeIcon) {
     } else if (genericIconDataUri) {
         img.src = genericIconDataUri;
     } else {
-        img.src = normalizeIconPath(civ.iconPath || GENERIC_CIV_ICON_PATH);
+        img.src = resolveAbsoluteResourceUrl(civ.iconPath || GENERIC_CIV_ICON_PATH);
     }
 
     img.onerror = () => {
@@ -288,7 +288,7 @@ function createCivInline(civ, largeIcon) {
         if (genericIconDataUri) {
             img.src = genericIconDataUri;
         } else {
-            img.src = normalizeIconPath(GENERIC_CIV_ICON_PATH);
+            img.src = resolveAbsoluteResourceUrl(GENERIC_CIV_ICON_PATH);
         }
     };
 
@@ -300,6 +300,8 @@ function createCivInline(civ, largeIcon) {
     return wrapper;
 }
 
-function normalizeIconPath(iconPath) {
-    return (iconPath || GENERIC_CIV_ICON_PATH).replace(/^\//, '');
+function resolveAbsoluteResourceUrl(iconPath) {
+    const relativePath = (iconPath || GENERIC_CIV_ICON_PATH).replace(/^\//, '');
+    const baseUrl = window.appBaseUrl || window.location.href;
+    return new URL(relativePath, baseUrl).toString();
 }

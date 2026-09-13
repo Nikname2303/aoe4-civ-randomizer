@@ -8,7 +8,6 @@ import com.aoe4.randomizer.service.RandomizerService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.List;
 import java.util.Map;
 
 public class JavaBridge {
@@ -27,7 +26,7 @@ public class JavaBridge {
     }
 
     public String getCivs() {
-        return writeJson(randomizerService.getAllCivs().stream().map(this::toResponse).toList());
+        return execute(() -> writeJson(randomizerService.getAllCivs().stream().map(this::toResponse).toList()));
     }
 
     public String randomSingle() {
@@ -50,7 +49,7 @@ public class JavaBridge {
     }
 
     public String getGenericIcon() {
-        return writeJson(Map.of("iconDataUri", civIconService.getGenericIconDataUri()));
+        return execute(() -> writeJson(Map.of("iconDataUri", civIconService.getGenericIconDataUri())));
     }
 
     private CivResponse toResponse(Civilization civilization) {
