@@ -1,35 +1,65 @@
 package com.aoe4.randomizer;
 
+import com.aoe4.randomizer.support.TestAppContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.io.TempDir;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.nio.file.Path;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 class CivilizationApiTest {
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Autowired
-    private MockMvc mockMvc;
+    @TempDir
+    Path tempDir;
 
     @Test
     void getCivsIncludesIconPath() throws Exception {
-        mockMvc.perform(get("/api/civs"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").exists())
-                .andExpect(jsonPath("$[0].iconPath").exists());
+        TestAppContext context = TestAppContext.create(tempDir);
+
+        JsonNode civs = objectMapper.readTree(context.javaBridge().getCivs());
+
+        assertTrue(civs.isArray());
+        assertTrue(civs.get(0).hasNonNull("name"));
+        assertTrue(civs.get(0).hasNonNull("iconPath"));
     }
 
     @Test
     void getCivsIncludesIconDataUri() throws Exception {
-        mockMvc.perform(get("/api/civs"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].iconDataUri").value(
-                        org.hamcrest.Matchers.startsWith("data:image/png;base64,")));
+        TestAppContext context = TestAppContext.create(tempDir);
+
+        JsonNode civs = objectMapper.readTree(context.javaBridge().getCivs());
+
+        assertTrue(civs.get(0).get("iconDataUri").asText().startsWith("data:image/png;base64,"));
+    }
+
+    @Test
+    void togglePersistsAcrossRepositoryReinitialization() throws Exception {
+        TestAppContext firstContext = TestAppContext.create(tempDir);
+        JsonNode civs = objectMapper.readTree(firstContext.javaBridge().getCivs());
+        JsonNode firstCiv = civs.get(0);
+        long civId = firstCiv.get("id").asLong();
+        boolean originalEnabled = firstCiv.get("enabled").asBoolean();
+
+        JsonNode toggled = objectMapper.readTree(firstContext.javaBridge().toggleCiv(civId));
+        assertEquals(!originalEnabled, toggled.get("enabled").asBoolean());
+
+        TestAppContext secondContext = TestAppContext.create(tempDir);
+        JsonNode reloaded = objectMapper.readTree(secondContext.javaBridge().getCivs());
+        JsonNode sameCiv = findById(reloaded, civId);
+        assertEquals(toggled.get("enabled").asBoolean(), sameCiv.get("enabled").asBoolean());
+    }
+
+    private JsonNode findById(JsonNode civs, long id) {
+        for (JsonNode civ : civs) {
+            if (civ.get("id").asLong() == id) {
+                return civ;
+            }
+        }
+        throw new AssertionError("Could not find civ id " + id);
     }
 }

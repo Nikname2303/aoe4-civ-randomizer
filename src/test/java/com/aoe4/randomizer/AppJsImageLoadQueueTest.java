@@ -1,9 +1,9 @@
 package com.aoe4.randomizer;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,20 +11,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AppJsImageLoadQueueTest {
 
     @Test
-    void appJsContainsConcurrencyLimitedImageLoadingQueue() throws IOException {
-        String appJs = new ClassPathResource("static/app.js")
-                .getContentAsString(StandardCharsets.UTF_8);
+    void appJsUsesDesktopBridgeAndAbsoluteResourceFallbacks() throws IOException {
+        String appJs = readResource("/static/app.js");
 
-        assertTrue(appJs.contains("MAX_CONCURRENT_IMAGE_LOADS"),
-                "app.js should define MAX_CONCURRENT_IMAGE_LOADS");
-        assertTrue(appJs.contains("function queueImageLoad("),
-                "app.js should define queueImageLoad function");
-        assertTrue(appJs.contains("function processQueue("),
-                "app.js should define processQueue function");
-        // Data URI is used directly; queue is used for the HTTP fallback path
-        assertTrue(appJs.contains("if (civ.iconDataUri)"),
-                "createCivInline should prefer iconDataUri over HTTP requests");
-        assertTrue(appJs.contains("queueImageLoad(img, withIconCacheToken(civ.iconPath || GENERIC_CIV_ICON_PATH));"),
-                "createCivInline fallback should use queueImageLoad for HTTP icon path");
+        assertTrue(appJs.contains("window.appInit = function appInit()"),
+                "app.js should expose an explicit init function for JavaFX bridge startup");
+        assertTrue(appJs.contains("bridgeCallJson('getCivs')"),
+                "app.js should load civilizations through the Java bridge");
+        assertTrue(appJs.contains("bridgeCallJson('randomSingle')"),
+                "solo roll should use the Java bridge");
+        assertTrue(appJs.contains("bridgeCallJson('randomLobby'"),
+                "lobby randomization should use the Java bridge");
+        assertTrue(appJs.contains("bridgeCallJson('setDlcEnabled'"),
+                "DLC toggles should use the Java bridge");
+        assertTrue(appJs.contains("img.src = resolveAbsoluteResourceUrl(civ.iconPath || GENERIC_CIV_ICON_PATH);"),
+                "icon fallback should resolve bundled resource paths without HTTP");
+    }
+
+    private String readResource(String path) throws IOException {
+        try (InputStream stream = getClass().getResourceAsStream(path)) {
+            if (stream == null) {
+                throw new AssertionError("Missing resource: " + path);
+            }
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 }

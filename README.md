@@ -1,11 +1,11 @@
 # AoE4 Civ Randomizer
 
-A simple local Java web app for randomizing **Age of Empires 4** civilizations.
+A lightweight local **desktop app** for randomizing **Age of Empires 4** civilizations.
 
 - Pick a random civ for yourself with one click.
 - Assign random civs to a full lobby of players (with or without duplicates).
 - Enable / disable individual civilizations — settings persist across restarts.
-- Runs entirely on **localhost** — no internet connection, no account, no install needed.
+- Runs entirely on your machine with **no embedded web server** and no open localhost port.
 
 ---
 
@@ -14,7 +14,7 @@ A simple local Java web app for randomizing **Age of Empires 4** civilizations.
 | Tool | Version |
 |------|---------|
 | JDK  | 17 or newer |
-| Maven | 3.6+ (or use `./mvnw` if a Maven wrapper is added later) |
+| Maven | 3.6+ |
 
 ---
 
@@ -23,40 +23,25 @@ A simple local Java web app for randomizing **Age of Empires 4** civilizations.
 1. **Open the project** — File → Open → select the `aoe4-civ-randomizer` folder.
 2. **Let Maven import** — IntelliJ will detect `pom.xml` and download dependencies automatically.
 3. **Run the application** — open `src/main/java/com/aoe4/randomizer/Aoe4RandomizerApplication.java` and click the green ▶ button next to the `main` method.
-4. **Open your browser** at [http://localhost:8080](http://localhost:8080).
 
 ---
 
 ## How to run from the command line
 
-```bash
-mvn spring-boot:run
-```
-
-Then open [http://localhost:8080](http://localhost:8080).
-
----
-
-## Desktop mode (JavaFX wrapper)
-
-Desktop mode runs the same Spring Boot app locally and opens it in a native window.
+### Desktop app directly
 
 ```bash
 mvn -Pdesktop javafx:run
 ```
 
-Or from a built jar:
+### Runnable jar
 
 ```bash
-java -jar target/randomizer-0.0.1-SNAPSHOT.jar --desktop
+mvn clean package
+java -jar target/randomizer-0.0.1-SNAPSHOT.jar
 ```
 
-- Default desktop port: `18080` (keeps normal web mode on `8080` unchanged).
-- If needed, override desktop port:
-
-```bash
-mvn -Pdesktop -Ddesktop.port=19090 javafx:run
-```
+The app loads `index.html` directly from bundled resources and uses a JavaFX WebView JavaScript-to-Java bridge instead of HTTP endpoints.
 
 ---
 
@@ -64,7 +49,7 @@ mvn -Pdesktop -Ddesktop.port=19090 javafx:run
 
 ### Prerequisites
 
-- JDK 17+ that includes `jpackage` (for example Temurin/OpenJDK full JDK install)
+- JDK 17+ that includes `jpackage`
 - Maven 3.6+
 - Windows machine for building Windows `.exe` / `.msi`
 
@@ -83,41 +68,24 @@ jpackage `
   --input target `
   --name "AoE4 Civ Randomizer" `
   --main-jar randomizer-0.0.1-SNAPSHOT.jar `
-  --main-class org.springframework.boot.loader.launch.JarLauncher `
-  --type app-image `
-  --arguments "--desktop" `
-  --java-options "-Ddesktop.port=18080"
+  --main-class com.aoe4.randomizer.Aoe4RandomizerApplication `
+  --type app-image
 ```
 
 Notes:
 - Use `--type msi` if you want an MSI installer.
-- Use `--type app-image` to produce a self-contained folder (no installer) that can be zipped and shared directly — the folder contains the `.exe` and the bundled JVM runtime, so recipients can run it without any installation step.
-- Optional icon: add `--icon path\to\icon.ico`. If omitted, default icon is used.
+- Use `--type app-image` to produce a self-contained folder (no installer) that can be zipped and shared directly.
+- Optional icon: add `--icon path\to\icon.ico`.
 
 ---
 
 ## Troubleshooting
 
-- **Civ icons appear as generic placeholders in desktop mode**  
-  Root cause: JavaFX WebView can fail when reusing HTTP keep-alive connections for
-  sequential icon requests to the local embedded server.  
-  Fix in this app: responses under `/images/**` send `Connection: close`, forcing
-  fresh connections per icon request in desktop mode.
-  
-  If icon issues recur, enable WebView diagnostics explicitly:
-  - Jar launch: `java -Ddesktop.debug=true -jar target/randomizer-0.0.1-SNAPSHOT.jar --desktop`
-  - JavaFX Maven launch: `mvn -Pdesktop -Ddesktop.debug=true javafx:run`
-
-- **Port conflict in desktop mode**  
-  If startup says desktop port is in use, close the conflicting app or run with another port:
-  `-Ddesktop.port=19090`.
-
 - **JavaFX class/module errors**  
   Make sure you used the desktop profile command: `mvn -Pdesktop javafx:run`.
 
 - **`jpackage` not found**  
-  Install a full JDK (not JRE), then verify:
-  `jpackage --version`.
+  Install a full JDK (not JRE), then verify: `jpackage --version`.
 
 ---
 
@@ -148,7 +116,5 @@ The `WHERE NOT EXISTS` guard means your enable/disable choices are never overwri
 ## Notes
 
 - **Local use only** — no authentication, no multi-user support, no network exposure.
-- **H2 database** — stored in `~/.aoe4-civ-randomizer/data/aoe4randomizer.mv.db` (gitignored). Delete this file to reset all settings to defaults.
-- **H2 console** (optional debugging) — uncomment the two lines in `application.properties` to enable it at `http://localhost:8080/h2-console`.
+- **Persistence** — H2 data is stored in `~/.aoe4-civ-randomizer/data/aoe4randomizer.mv.db`. Delete this file to reset all settings to defaults.
 - **Civ icons** — local files are stored in `src/main/resources/static/images/civs/`. Keep filenames lowercase and hyphenated to match `icon_path` values.
-- **Planned features** (not in this version): pick history / stats, multi-profile support.

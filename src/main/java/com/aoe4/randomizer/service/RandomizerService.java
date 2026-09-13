@@ -2,13 +2,15 @@ package com.aoe4.randomizer.service;
 
 import com.aoe4.randomizer.model.Civilization;
 import com.aoe4.randomizer.repository.CivilizationRepository;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.ThreadLocalRandom;
 
-@Service
 public class RandomizerService {
 
     private final CivilizationRepository civRepo;
@@ -17,75 +19,62 @@ public class RandomizerService {
         this.civRepo = civRepo;
     }
 
-    /** Returns all civs sorted by DLC then name. */
     public List<Civilization> getAllCivs() {
         return civRepo.findAllByOrderByDlcAscNameAsc();
     }
 
-    /** Sets enabled state for all civilizations in a DLC group and saves them. */
     public List<Civilization> setDlcEnabled(String dlcName, boolean enabled) {
         List<Civilization> civs = civRepo.findByDlc(dlcName);
         if (civs.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No civilizations found for DLC: " + dlcName);
+            throw new NoSuchElementException("No civilizations found for DLC: " + dlcName);
         }
-        civs.forEach(c -> c.setEnabled(enabled));
+        civs.forEach(civ -> civ.setEnabled(enabled));
         return civRepo.saveAll(civs);
     }
 
-    /** Flips the enabled state of a civilization and saves it. */
-    public Civilization toggle(Long id) {
+    public Civilization toggle(long id) {
         Civilization civ = civRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Civilization not found: " + id));
+                .orElseThrow(() -> new NoSuchElementException("Civilization not found: " + id));
         civ.setEnabled(!civ.isEnabled());
         return civRepo.save(civ);
     }
 
-    /** Picks one random civ from the enabled pool. */
     public Civilization randomSingle() {
         List<Civilization> enabled = civRepo.findByEnabledTrue();
         if (enabled.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "No civilizations are enabled. Please enable at least one civilization first.");
+            throw new IllegalStateException("No civilizations are enabled. Please enable at least one civilization first.");
         }
-        return enabled.get(new Random().nextInt(enabled.size()));
+        return enabled.get(ThreadLocalRandom.current().nextInt(enabled.size()));
     }
 
-    /**
-     * Assigns a civilization to each player.
-     * If allowDuplicates=true: each player gets an independent random pick (with replacement).
-     * If allowDuplicates=false: players are assigned without replacement (shuffle).
-     */
     public Map<String, String> randomLobby(List<String> playerNames, boolean allowDuplicates) {
         List<Civilization> enabled = civRepo.findByEnabledTrue();
         if (enabled.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "No civilizations are enabled. Please enable at least one civilization first.");
+            throw new IllegalStateException("No civilizations are enabled. Please enable at least one civilization first.");
         }
 
         if (!allowDuplicates && playerNames.size() > enabled.size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Not enough enabled civilizations for unique assignment. " +
-                    "You have " + playerNames.size() + " players but only " + enabled.size() +
-                    " enabled civilizations. Please enable more civilizations or allow duplicate civilizations.");
+            throw new IllegalStateException(
+                    "Not enough enabled civilizations for unique assignment. You have "
+                            + playerNames.size() + " players but only " + enabled.size()
+                            + " enabled civilizations. Please enable more civilizations or allow duplicate civilizations.");
         }
 
         Map<String, String> result = new LinkedHashMap<>();
-        Random random = new Random();
 
         if (allowDuplicates) {
             for (String player : playerNames) {
-                Civilization picked = enabled.get(random.nextInt(enabled.size()));
+                Civilization picked = enabled.get(ThreadLocalRandom.current().nextInt(enabled.size()));
                 result.put(player, picked.getName());
             }
-        } else {
-            // Shuffle a copy of the enabled list and assign in order
-            List<Civilization> pool = new ArrayList<>(enabled);
-            Collections.shuffle(pool, random);
-            for (int i = 0; i < playerNames.size(); i++) {
-                result.put(playerNames.get(i), pool.get(i).getName());
-            }
+            return result;
         }
 
+        List<Civilization> pool = new ArrayList<>(enabled);
+        Collections.shuffle(pool);
+        for (int index = 0; index < playerNames.size(); index++) {
+            result.put(playerNames.get(index), pool.get(index).getName());
+        }
         return result;
     }
 }
